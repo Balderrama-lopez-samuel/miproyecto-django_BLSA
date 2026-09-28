@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 import pymysql
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-+eqqq57_1nb*n8*0u=o%s02gcq7qcgtr*gsek&vzaw*4xnfbh@'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=Csv())
 
 
 # Application definition
@@ -43,14 +43,24 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # SecurityMiddleware: agrega cabeceras de seguridad básicas a cada respuesta
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoiseMiddleware: nueva línea — debe ir justo después de SecurityMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    # SessionMiddleware: habilita las sesiones (login, carrito, etc.)
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # CommonMiddleware: ajustes generales de peticiones/respuestas
     'django.middleware.common.CommonMiddleware',
+    # CsrfViewMiddleware: protege los formularios contra ataques CSRF
     'django.middleware.csrf.CsrfViewMiddleware',
+    # AuthenticationMiddleware: asocia cada petición con el usuario logueado (si hay uno)
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # MessageMiddleware: habilita mensajes flash de una sola vista (ej. "guardado con éxito")
     'django.contrib.messages.middleware.MessageMiddleware',
+    # XFrameOptionsMiddleware: evita que tu sitio se cargue dentro de un <iframe> ajeno
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'miproyecto.urls'
 
@@ -132,7 +142,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
-
+# STATIC_ROOT: carpeta donde collectstatic junta todos los archivos estáticos antes de publicar
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
@@ -141,4 +152,14 @@ MAILERS = {
     'default': {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
+}
+
+
+# STORAGES: le dice a Django que use whitenoise para comprimir y versionar esos archivos
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    # cierre de la config de "staticfiles"
+    },
+# cierre del diccionario STORAGES
 }
